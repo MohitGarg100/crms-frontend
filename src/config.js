@@ -1,0 +1,1 @@
+export const BASE_URL = "https://crms-backend-1.onrender.com";
