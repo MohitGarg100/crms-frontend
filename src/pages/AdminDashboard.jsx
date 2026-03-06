@@ -5,7 +5,7 @@ import { BASE_URL } from "../config";
 
 function AdminDashboard() {
 
-    const adminId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
 
     const [formData, setFormData] = useState({
         companyName: "",
@@ -35,8 +35,17 @@ function AdminDashboard() {
 
     const fetchDrives = async () => {
         try {
-            const response = await axios.get(`${BASE_URL}/students/drives/open`);
+            const response = await axios.get(
+                `${BASE_URL}/admin/drives/open`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
             setDrives(response.data);
+
         } catch {
             setErrorMessage("Failed to fetch drives");
         }
@@ -54,10 +63,15 @@ function AdminDashboard() {
 
         try {
             await axios.post(
-                `${BASE_URL}/admin/drives/${adminId}`,
+                `${BASE_URL}/admin/drives`,
                 {
                     ...formData,
                     status: "OPEN"
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
                 }
             );
 
@@ -89,7 +103,12 @@ function AdminDashboard() {
     const handleViewApplicant = async (driveId) => {
         try {
             const response = await axios.get(
-                `${BASE_URL}/admin/drives/${driveId}/applicants/${adminId}`
+                `${BASE_URL}/admin/drives/${driveId}/applicants`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
             );
 
             setApplicants(prev => ({
@@ -107,7 +126,13 @@ function AdminDashboard() {
     const handleCloseDrive = async (driveId) => {
         try {
             await axios.put(
-                `${BASE_URL}/admin/drives/${driveId}/close/${adminId}`
+                `${BASE_URL}/admin/drives/${driveId}/close`,
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
             );
 
             setSuccessMessage("Drive closed successfully");
@@ -143,117 +168,32 @@ function AdminDashboard() {
                     <h3>Create Drive</h3>
 
                     <form onSubmit={handleSubmit}>
+                        <input name="companyName" placeholder="Company Name" value={formData.companyName} onChange={handleChange} required />
 
-                        <input
-                            name="companyName"
-                            placeholder="Company Name"
-                            value={formData.companyName}
-                            onChange={handleChange}
-                            required
-                        />
-
-                        <select
-                            name="driveType"
-                            value={formData.driveType}
-                            onChange={handleChange}
-                            required
-                        >
+                        <select name="driveType" value={formData.driveType} onChange={handleChange} required>
                             <option value="">Select Drive Type</option>
                             <option value="ONLINE">On Campus</option>
                             <option value="OFFLINE">Off Campus</option>
                             <option value="HYBRID">Hybrid</option>
                         </select>
 
-                        <select
-                            name="driveDateType"
-                            value={formData.driveDateType}
-                            onChange={handleChange}
-                            required
-                        >
+                        <select name="driveDateType" value={formData.driveDateType} onChange={handleChange} required>
                             <option value="">Select Date Type</option>
                             <option value="SINGLE_DAY">Single Date</option>
                             <option value="DATE_RANGE">Date Range</option>
                             <option value="TO_BE_ANNOUNCED">To Be Announced</option>
                         </select>
 
-                        <input
-                            name="driveDateNote"
-                            placeholder="Drive Date Note"
-                            value={formData.driveDateNote}
-                            onChange={handleChange}
-                            required
-                        />
-
-                        <input
-                            name="streamRequired"
-                            placeholder="Stream Required"
-                            value={formData.streamRequired}
-                            onChange={handleChange}
-                            required
-                        />
-
-                        <input
-                            name="eligibilityCriteria"
-                            placeholder="Eligibility Criteria"
-                            value={formData.eligibilityCriteria}
-                            onChange={handleChange}
-                            required
-                        />
-
-                        <input
-                            name="batch"
-                            placeholder="Batch"
-                            value={formData.batch}
-                            onChange={handleChange}
-                            required
-                        />
-
-                        <input
-                            name="position"
-                            placeholder="Position"
-                            value={formData.position}
-                            onChange={handleChange}
-                            required
-                        />
-
-                        <input
-                            name="jobProfile"
-                            placeholder="Job Profile"
-                            value={formData.jobProfile}
-                            onChange={handleChange}
-                        />
-
-                        <input
-                            name="jobLocation"
-                            placeholder="Job Location"
-                            value={formData.jobLocation}
-                            onChange={handleChange}
-                            required
-                        />
-
-                        <input
-                            name="payPackage"
-                            placeholder="Pay Package"
-                            value={formData.payPackage}
-                            onChange={handleChange}
-                            required
-                        />
-
-                        <input
-                            name="bondOrFee"
-                            placeholder="Bond or Fee"
-                            value={formData.bondOrFee}
-                            onChange={handleChange}
-                            required
-                        />
-
-                        <input
-                            name="placementProcess"
-                            placeholder="Placement Process"
-                            value={formData.placementProcess}
-                            onChange={handleChange}
-                            required
-                        />
+                        <input name="driveDateNote" placeholder="Drive Date Note" value={formData.driveDateNote} onChange={handleChange} required />
+                        <input name="streamRequired" placeholder="Stream Required" value={formData.streamRequired} onChange={handleChange} required />
+                        <input name="eligibilityCriteria" placeholder="Eligibility Criteria" value={formData.eligibilityCriteria} onChange={handleChange} required />
+                        <input name="batch" placeholder="Batch" value={formData.batch} onChange={handleChange} required />
+                        <input name="position" placeholder="Position" value={formData.position} onChange={handleChange} required />
+                        <input name="jobProfile" placeholder="Job Profile" value={formData.jobProfile} onChange={handleChange} />
+                        <input name="jobLocation" placeholder="Job Location" value={formData.jobLocation} onChange={handleChange} required />
+                        <input name="payPackage" placeholder="Pay Package" value={formData.payPackage} onChange={handleChange} required />
+                        <input name="bondOrFee" placeholder="Bond or Fee" value={formData.bondOrFee} onChange={handleChange} required />
+                        <input name="placementProcess" placeholder="Placement Process" value={formData.placementProcess} onChange={handleChange} required />
 
                         <button className="btn btn-primary" type="submit">
                             Create Drive
@@ -270,10 +210,7 @@ function AdminDashboard() {
                             <p><strong>Position:</strong> {drive.position}</p>
                             <p><strong>Package:</strong> {drive.payPackage}</p>
 
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => handleViewApplicant(drive.id)}
-                            >
+                            <button className="btn btn-primary" onClick={() => handleViewApplicant(drive.id)}>
                                 View Applicants
                             </button>
 
@@ -303,6 +240,7 @@ function AdminDashboard() {
                             )}
                         </div>
                     ))}
+
                 </div>
 
             </div>

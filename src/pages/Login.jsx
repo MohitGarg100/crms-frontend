@@ -22,7 +22,8 @@ function Login() {
                 `${BASE_URL}/auth/login`,
                 { identifier, password }
             );
-
+            
+            localStorage.setItem("token", response.data.token);
             localStorage.setItem("userId", response.data.userId);
             localStorage.setItem("role", response.data.role);
             localStorage.setItem("profileCreated", response.data.profileCreated);

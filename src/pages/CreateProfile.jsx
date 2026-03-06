@@ -7,7 +7,7 @@ import { BASE_URL } from "../config";
 function CreateProfile() {
 
     const navigate = useNavigate();
-    const userId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
 
     const [errorMessage, setErrorMessage] = useState("");
 
@@ -39,14 +39,22 @@ function CreateProfile() {
         setErrorMessage("");
 
         try {
-            await axios.post(`${BASE_URL}/students/${userId}/profile`, {
-                ...formData,
-                tenthPercentage: parseFloat(formData.tenthPercentage),
-                twelfthPercentage: parseFloat(formData.twelfthPercentage),
-                graduationCgpa: parseFloat(formData.graduationCgpa),
-                postGraduationCgpa: parseFloat(formData.postGraduationCgpa),
-                numberOfActiveBacklogs: parseInt(formData.numberOfActiveBacklogs)
-            });
+            await axios.post(
+                `${BASE_URL}/students/profile`,
+                {
+                    ...formData,
+                    tenthPercentage: parseFloat(formData.tenthPercentage),
+                    twelfthPercentage: parseFloat(formData.twelfthPercentage),
+                    graduationCgpa: parseFloat(formData.graduationCgpa),
+                    postGraduationCgpa: parseFloat(formData.postGraduationCgpa),
+                    numberOfActiveBacklogs: parseInt(formData.numberOfActiveBacklogs)
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
 
             localStorage.setItem("profileCreated", "true");
             navigate("/student");

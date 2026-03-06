@@ -9,7 +9,7 @@ function StudentDashboard() {
     const [errorMessage, setErrorMessage] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
 
-    const studentId = localStorage.getItem("userId");
+    const token = localStorage.getItem("token");
 
     useEffect(() => {
         fetchOpenDrives();
@@ -17,8 +17,17 @@ function StudentDashboard() {
 
     const fetchOpenDrives = async () => {
         try {
-            const response = await axios.get(`${BASE_URL}/students/drives/open`);
+            const response = await axios.get(
+                `${BASE_URL}/students/drives/open`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
             setDrives(response.data);
+
         } catch {
             setErrorMessage("Failed to fetch drives");
         }
@@ -26,8 +35,19 @@ function StudentDashboard() {
 
     const handleApply = async (driveId) => {
         try {
-            await axios.post(`${BASE_URL}/students/drives/${driveId}/apply/${studentId}`);
+
+            await axios.post(
+                `${BASE_URL}/students/drives/${driveId}/apply`,
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
             setSuccessMessage("Applied Successfully");
+
         } catch (error) {
             setErrorMessage(error.response?.data?.message || "Failed to apply");
         }
@@ -66,6 +86,7 @@ function StudentDashboard() {
                             </button>
                         </div>
                     ))}
+
                 </div>
 
             </div>
