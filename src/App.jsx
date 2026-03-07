@@ -5,6 +5,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CreateProfile from "./pages/CreateProfile";
 import Register from "./pages/Register";
+import ApplicantsPage from "./pages/ApplicantsPage";
 
 function App() {
   return (
@@ -35,6 +36,15 @@ function App() {
             </ProtectedRoute>
           }       
         />
+
+      <Route 
+        path="/admin/applicants/:driveId" 
+        element={
+            <ProtectedRoute allowedRole="ADMIN">
+              <ApplicantsPage />
+            </ProtectedRoute>
+        }
+      />
 
         <Route path="/register" element={<Register />} />
         

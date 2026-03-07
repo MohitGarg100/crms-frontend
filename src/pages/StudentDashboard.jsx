@@ -6,8 +6,8 @@ import { BASE_URL } from "../config";
 function StudentDashboard() {
 
     const [drives, setDrives] = useState([]);
-    const [errorMessage, setErrorMessage] = useState("");
-    const [successMessage, setSuccessMessage] = useState("");
+    const [message, setMessage] = useState(null);
+    const [appliedDrives, setAppliedDrives] = useState([]);
 
     const token = localStorage.getItem("token");
 
@@ -15,8 +15,19 @@ function StudentDashboard() {
         fetchOpenDrives();
     }, []);
 
+    const showMessage = (text, type) => {
+
+        setMessage({ text, type });
+
+        setTimeout(() => {
+            setMessage(null);
+        }, 3000);
+    };
+
     const fetchOpenDrives = async () => {
+
         try {
+
             const response = await axios.get(
                 `${BASE_URL}/students/drives/open`,
                 {
@@ -26,18 +37,24 @@ function StudentDashboard() {
                 }
             );
 
-            setDrives(response.data);
+            // Sort drives by highest package
+            const sortedDrives = response.data.sort(
+                (a, b) => parseFloat(b.payPackage) - parseFloat(a.payPackage)
+            );
+
+            setDrives(sortedDrives);
 
         } catch {
-            setErrorMessage("Failed to fetch drives");
+            showMessage("Failed to fetch drives", "error");
         }
     };
 
-    const handleApply = async (driveId) => {
+    const handleApply = async (drive) => {
+
         try {
 
             await axios.post(
-                `${BASE_URL}/students/drives/${driveId}/apply`,
+                `${BASE_URL}/students/drives/${drive.id}/apply`,
                 {},
                 {
                     headers: {
@@ -46,10 +63,20 @@ function StudentDashboard() {
                 }
             );
 
-            setSuccessMessage("Applied Successfully");
+            setAppliedDrives(prev => [...prev, drive.id]);
+
+            showMessage(
+                `Applied to ${drive.companyName} successfully`,
+                "success"
+            );
 
         } catch (error) {
-            setErrorMessage(error.response?.data?.message || "Failed to apply");
+
+            const msg =
+                error.response?.data?.message ||
+                "Failed to apply";
+
+            showMessage(msg, "error");
         }
     };
 
@@ -59,33 +86,63 @@ function StudentDashboard() {
 
             <div className="container">
 
-                <h2>Student Dashboard</h2>
-
-                {successMessage && <p className="success-text">{successMessage}</p>}
-                {errorMessage && <p className="error-text">{errorMessage}</p>}
-
-                <div className="card">
-                    <h3>Total Open Drives</h3>
-                    <p className="dashboard-count">{drives.length}</p>
+                <div className="dashboard-header">
+                    <h2>Student Dashboard</h2>
                 </div>
 
-                <div className="page-section">
-                    <h3>Open Drives</h3>
+                {message && (
+                    <p className={message.type === "success" ? "success-text" : "error-text"}>
+                        {message.text}
+                    </p>
+                )}
 
-                    {drives.map(drive => (
-                        <div key={drive.id} className="card">
-                            <h4>{drive.companyName}</h4>
-                            <p><strong>Position:</strong> {drive.position}</p>
-                            <p><strong>Package:</strong> {drive.payPackage}</p>
+                <div className="dashboard-stats">
 
-                            <button
-                                className="btn btn-primary"
-                                onClick={() => handleApply(drive.id)}
-                            >
-                                Apply
-                            </button>
-                        </div>
-                    ))}
+                    <div className="stat-card">
+                        <h3>Total Open Drives</h3>
+                        <div className="stat-number">{drives.length}</div>
+                    </div>
+
+                </div>
+
+                <h3>Open Drives</h3>
+
+                <div className="drive-grid">
+
+                    {drives.map(drive => {
+
+                        const applied = appliedDrives.includes(drive.id);
+
+                        return (
+                            <div key={drive.id} className="drive-card">
+
+                                <div>
+
+                                    <div className="drive-company">
+                                        {drive.companyName}
+                                    </div>
+
+                                    <div className="drive-detail">
+                                        Position: {drive.position}
+                                    </div>
+
+                                    <div className="drive-package">
+                                        Package: {drive.payPackage} LPA
+                                    </div>
+
+                                </div>
+
+                                <button
+                                    className={`btn ${applied ? "btn-disabled" : "btn-primary"}`}
+                                    disabled={applied}
+                                    onClick={() => handleApply(drive)}
+                                >
+                                    {applied ? "Applied ✓" : "Apply"}
+                                </button>
+
+                            </div>
+                        );
+                    })}
 
                 </div>
 

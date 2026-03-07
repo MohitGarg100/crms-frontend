@@ -10,23 +10,32 @@ function Navbar() {
         navigate("/");
     };
 
+    const homeRoute = role === "ADMIN" ? "/admin" : "/student";
+
     return (
         <nav className="navbar">
+
             <div className="navbar-left">
-                <Link to="/" className="navbar-brand">
+                <Link to={homeRoute} className="navbar-brand">
                     CRMS
                 </Link>
             </div>
 
             <div className="navbar-right">
+
                 <span className="role-badge">
                     {role}
                 </span>
 
-                <button className="logout-btn" onClick={handleLogout}>
+                <button
+                    className="logout-btn"
+                    onClick={handleLogout}
+                >
                     Logout
                 </button>
+
             </div>
+
         </nav>
     );
 }

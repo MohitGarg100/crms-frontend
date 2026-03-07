@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import { BASE_URL } from "../config";
+import { useNavigate } from "react-router-dom";
 
 function AdminDashboard() {
 
     const token = localStorage.getItem("token");
+    const navigate = useNavigate();
 
-    const [formData, setFormData] = useState({
+    const initialForm = {
         companyName: "",
         driveType: "",
         driveDateType: "",
@@ -20,126 +22,147 @@ function AdminDashboard() {
         jobLocation: "",
         payPackage: "",
         bondOrFee: "",
-        placementProcess: "",
-    });
+        placementProcess: ""
+    };
 
+    const [formData, setFormData] = useState(initialForm);
+    const [errors, setErrors] = useState({});
     const [drives, setDrives] = useState([]);
-    const [applicants, setApplicants] = useState({});
-    const [selectedDrive, setSelectedDrive] = useState(null);
-    const [errorMessage, setErrorMessage] = useState("");
-    const [successMessage, setSuccessMessage] = useState("");
+    const [message, setMessage] = useState(null);
 
     useEffect(() => {
         fetchDrives();
     }, []);
 
+    const showMessage = (text, type) => {
+
+        setMessage({ text, type });
+
+        setTimeout(() => {
+            setMessage(null);
+        }, 3000);
+    };
+
     const fetchDrives = async () => {
+
         try {
+
             const response = await axios.get(
                 `${BASE_URL}/admin/drives/open`,
                 {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
+                    headers: { Authorization: `Bearer ${token}` }
                 }
             );
 
             setDrives(response.data);
 
         } catch {
-            setErrorMessage("Failed to fetch drives");
+            showMessage("Failed to fetch drives", "error");
         }
     };
 
+    const validateField = (name, value) => {
+
+        let error = "";
+
+        if (!value.trim()) {
+            error = "This field is required";
+        }
+
+        if (name === "batch") {
+            if (!/^20[2-9][0-9]$/.test(value)) {
+                error = "Enter valid year (2024-2050)";
+            }
+        }
+
+        if (name === "payPackage") {
+            if (!/^\d{1,2}(\.\d)?$/.test(value)) {
+                error = "Enter valid package (e.g. 10 or 12.5)";
+            }
+        }
+
+        if (name === "jobLocation") {
+            if (!/^[A-Za-z ]{2,40}$/.test(value)) {
+                error = "Only letters allowed";
+            }
+        }
+
+        setErrors(prev => ({
+            ...prev,
+            [name]: error
+        }));
+    };
+
     const handleChange = (e) => {
+
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+
+        setFormData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+
+        validateField(name, value);
+    };
+
+    const isFormValid = () => {
+
+        for (let key in formData) {
+            if (!formData[key]) return false;
+        }
+
+        for (let key in errors) {
+            if (errors[key]) return false;
+        }
+
+        return true;
     };
 
     const handleSubmit = async (e) => {
+
         e.preventDefault();
-        setErrorMessage("");
-        setSuccessMessage("");
+
+        if (!isFormValid()) return;
 
         try {
+
             await axios.post(
                 `${BASE_URL}/admin/drives`,
+                { ...formData, status: "OPEN" },
                 {
-                    ...formData,
-                    status: "OPEN"
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
+                    headers: { Authorization: `Bearer ${token}` }
                 }
             );
 
-            setSuccessMessage("Drive created successfully");
+            showMessage("Drive created successfully", "success");
 
-            setFormData({
-                companyName: "",
-                driveType: "",
-                driveDateType: "",
-                driveDateNote: "",
-                streamRequired: "",
-                eligibilityCriteria: "",
-                batch: "",
-                position: "",
-                jobProfile: "",
-                jobLocation: "",
-                payPackage: "",
-                bondOrFee: "",
-                placementProcess: "",
-            });
+            setFormData(initialForm);
 
             fetchDrives();
 
         } catch {
-            setErrorMessage("Failed to create drive");
-        }
-    };
-
-    const handleViewApplicant = async (driveId) => {
-        try {
-            const response = await axios.get(
-                `${BASE_URL}/admin/drives/${driveId}/applicants`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                }
-            );
-
-            setApplicants(prev => ({
-                ...prev,
-                [driveId]: response.data
-            }));
-
-            setSelectedDrive(driveId);
-
-        } catch {
-            setErrorMessage("Failed to fetch applicants");
+            showMessage("Failed to create drive", "error");
         }
     };
 
     const handleCloseDrive = async (driveId) => {
+
         try {
+
             await axios.put(
                 `${BASE_URL}/admin/drives/${driveId}/close`,
                 {},
                 {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
+                    headers: { Authorization: `Bearer ${token}` }
                 }
             );
 
-            setSuccessMessage("Drive closed successfully");
+            showMessage("Drive closed", "success");
+
             fetchDrives();
 
         } catch {
-            setErrorMessage("Failed to close drive");
+            showMessage("Failed to close drive", "error");
         }
     };
 
@@ -149,96 +172,173 @@ function AdminDashboard() {
 
             <div className="container">
 
-                <div className="page-section">
-                    <h2>Admin Dashboard</h2>
-                    <p style={{ color: "#555" }}>
-                        Manage placement drives and monitor applicants.
+                <h2>Admin Dashboard</h2>
+
+                <p style={{ marginBottom: "20px", color: "#555" }}>
+                    Manage placement drives and monitor applicants
+                </p>
+
+                {message && (
+                    <p className={message.type === "success" ? "success-text" : "error-text"}>
+                        {message.text}
                     </p>
-                </div>
+                )}
 
-                {successMessage && <p className="success-text">{successMessage}</p>}
-                {errorMessage && <p className="error-text">{errorMessage}</p>}
-
-                <div className="card">
+                <div className="stat-card">
                     <h3>Total Active Drives</h3>
-                    <p className="dashboard-count">{drives.length}</p>
+                    <div className="stat-number">{drives.length}</div>
                 </div>
 
-                <div className="page-section">
-                    <h3>Create Drive</h3>
+                <h3>Create Drive</h3>
 
-                    <form onSubmit={handleSubmit}>
-                        <input name="companyName" placeholder="Company Name" value={formData.companyName} onChange={handleChange} required />
+                <form className="admin-drive-form" onSubmit={handleSubmit}>
 
-                        <select name="driveType" value={formData.driveType} onChange={handleChange} required>
-                            <option value="">Select Drive Type</option>
-                            <option value="ONLINE">On Campus</option>
-                            <option value="OFFLINE">Off Campus</option>
-                            <option value="HYBRID">Hybrid</option>
-                        </select>
+                    <div>
+                        <input
+                            name="companyName"
+                            placeholder="Company Name"
+                            value={formData.companyName}
+                            onChange={handleChange}
+                        />
+                        {errors.companyName && <small className="error-text">{errors.companyName}</small>}
+                    </div>
 
-                        <select name="driveDateType" value={formData.driveDateType} onChange={handleChange} required>
-                            <option value="">Select Date Type</option>
-                            <option value="SINGLE_DAY">Single Date</option>
-                            <option value="DATE_RANGE">Date Range</option>
-                            <option value="TO_BE_ANNOUNCED">To Be Announced</option>
-                        </select>
+                    <select name="driveType" value={formData.driveType} onChange={handleChange}>
+                        <option value="">Drive Type</option>
+                        <option value="ONLINE">On Campus</option>
+                        <option value="OFFLINE">Off Campus</option>
+                        <option value="HYBRID">Hybrid</option>
+                    </select>
 
-                        <input name="driveDateNote" placeholder="Drive Date Note" value={formData.driveDateNote} onChange={handleChange} required />
-                        <input name="streamRequired" placeholder="Stream Required" value={formData.streamRequired} onChange={handleChange} required />
-                        <input name="eligibilityCriteria" placeholder="Eligibility Criteria" value={formData.eligibilityCriteria} onChange={handleChange} required />
-                        <input name="batch" placeholder="Batch" value={formData.batch} onChange={handleChange} required />
-                        <input name="position" placeholder="Position" value={formData.position} onChange={handleChange} required />
-                        <input name="jobProfile" placeholder="Job Profile" value={formData.jobProfile} onChange={handleChange} />
-                        <input name="jobLocation" placeholder="Job Location" value={formData.jobLocation} onChange={handleChange} required />
-                        <input name="payPackage" placeholder="Pay Package" value={formData.payPackage} onChange={handleChange} required />
-                        <input name="bondOrFee" placeholder="Bond or Fee" value={formData.bondOrFee} onChange={handleChange} required />
-                        <input name="placementProcess" placeholder="Placement Process" value={formData.placementProcess} onChange={handleChange} required />
+                    <select name="driveDateType" value={formData.driveDateType} onChange={handleChange}>
+                        <option value="">Date Type</option>
+                        <option value="SINGLE_DAY">Single Day</option>
+                        <option value="DATE_RANGE">Date Range</option>
+                        <option value="TO_BE_ANNOUNCED">TBA</option>
+                    </select>
 
-                        <button className="btn btn-primary" type="submit">
-                            Create Drive
-                        </button>
-                    </form>
-                </div>
+                    <input
+                        name="driveDateNote"
+                        placeholder="Drive Date Note"
+                        value={formData.driveDateNote}
+                        onChange={handleChange}
+                    />
 
-                <div className="page-section">
-                    <h3>Manage Drives</h3>
+                    <select name="streamRequired" value={formData.streamRequired} onChange={handleChange}>
+                        <option value="">Stream Required</option>
+                        <option>CSE</option>
+                        <option>Mechanical</option>
+                        <option>Electrical</option>
+                        <option>Civil</option>
+                        <option>Chemical</option>
+                        <option>Textile</option>
+                        <option>AI</option>
+                    </select>
+
+                    <input
+                        name="eligibilityCriteria"
+                        placeholder="Eligibility Criteria"
+                        value={formData.eligibilityCriteria}
+                        onChange={handleChange}
+                    />
+
+                    <input
+                        name="batch"
+                        placeholder="Batch (e.g. 2026)"
+                        value={formData.batch}
+                        onChange={handleChange}
+                    />
+                    {errors.batch && <small className="error-text">{errors.batch}</small>}
+
+                    <input
+                        name="position"
+                        placeholder="Position"
+                        value={formData.position}
+                        onChange={handleChange}
+                    />
+
+                    <input
+                        name="jobProfile"
+                        placeholder="Job Profile"
+                        value={formData.jobProfile}
+                        onChange={handleChange}
+                    />
+
+                    <input
+                        name="jobLocation"
+                        placeholder="Job Location"
+                        value={formData.jobLocation}
+                        onChange={handleChange}
+                    />
+                    {errors.jobLocation && <small className="error-text">{errors.jobLocation}</small>}
+
+                    <input
+                        name="payPackage"
+                        placeholder="Pay Package"
+                        value={formData.payPackage}
+                        onChange={handleChange}
+                    />
+                    {errors.payPackage && <small className="error-text">{errors.payPackage}</small>}
+
+                    <select name="bondOrFee" value={formData.bondOrFee} onChange={handleChange}>
+                        <option value="">Bond / Fee</option>
+                        <option>No Bond</option>
+                        <option>1 Year Bond</option>
+                        <option>2 Year Bond</option>
+                        <option>Service Agreement</option>
+                    </select>
+
+                    <input
+                        className="full-width"
+                        name="placementProcess"
+                        placeholder="Placement Process"
+                        value={formData.placementProcess}
+                        onChange={handleChange}
+                    />
+
+                    <button
+                        className="btn btn-primary full-width"
+                        disabled={!isFormValid()}
+                    >
+                        Create Drive
+                    </button>
+
+                </form>
+
+                <h3 style={{ marginTop: "40px" }}>Manage Drives</h3>
+
+                <div className="drive-grid">
 
                     {drives.map(drive => (
-                        <div key={drive.id} className="card">
-                            <h4>{drive.companyName}</h4>
-                            <p><strong>Position:</strong> {drive.position}</p>
-                            <p><strong>Package:</strong> {drive.payPackage}</p>
 
-                            <button className="btn btn-primary" onClick={() => handleViewApplicant(drive.id)}>
-                                View Applicants
-                            </button>
+                        <div key={drive.id} className="drive-card">
 
-                            <button
-                                className="btn btn-danger"
-                                onClick={() => handleCloseDrive(drive.id)}
-                                style={{ marginLeft: "10px" }}
-                            >
-                                Close Drive
-                            </button>
+                            <div>
+                                <div className="drive-company">{drive.companyName}</div>
+                                <div className="drive-detail">Position: {drive.position}</div>
+                                <div className="drive-package">Package: {drive.payPackage} LPA</div>
+                            </div>
 
-                            {selectedDrive === drive.id && applicants[drive.id] && (
-                                <div className="page-section">
-                                    <h5>Applicants</h5>
+                            <div className="drive-actions">
 
-                                    {applicants[drive.id].length === 0 ? (
-                                        <p>No applicants yet</p>
-                                    ) : (
-                                        applicants[drive.id].map(app => (
-                                            <div key={app.id}>
-                                                <p><strong>ID:</strong> {app.student.id}</p>
-                                                <p><strong>Email:</strong> {app.student.email}</p>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            )}
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => navigate(`/admin/applicants/${drive.id}`)}
+                                >
+                                    View Applicants
+                                </button>
+
+                                <button
+                                    className="btn btn-danger"
+                                    onClick={() => handleCloseDrive(drive.id)}
+                                >
+                                    Close Drive
+                                </button>
+
+                            </div>
+
                         </div>
+
                     ))}
 
                 </div>
