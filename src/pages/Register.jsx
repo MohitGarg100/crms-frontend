@@ -79,7 +79,7 @@ function Register() {
             await axios.post(`${BASE_URL}/auth/register`, formData);
 
             navigate("/", {
-                state: { message: "Registration successful. Please login." }
+                state: { message: "Your account has been created successfully. Please check your email to verify your account before logging in." }
             });
 
         } catch (error) {
