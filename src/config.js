@@ -1,1 +1,3 @@
-export const BASE_URL = "https://crms-backend-1.onrender.com";
+const BASE_URL = import.meta.env.VITE_BASE_URL || "http://localhost:8080";
+
+export { BASE_URL };
